@@ -1,0 +1,228 @@
+blueprint:
+  name: Update check with Grok (web + X search)
+  description: >-
+    Before you hit "Install", let Grok (xAI) check whether people are reporting
+    problems with that exact version on X, GitHub, Reddit and the Home Assistant
+    forum. A few hours after an update appears, you get a push notification with
+    a verdict (Install / Wait / Caution) and up to three concrete issues. The full
+    answer with sources is also saved as a Home Assistant notification.
+
+
+    Run the automation manually (Run actions, or a dashboard button calling
+    `automation.trigger`) to check every pending update from your list right away.
+
+
+    Requires the "xAI Grok Conversation" integration from HACS
+    (braytonstafford/grok_conversation) and the Home Assistant Companion app.
+  domain: automation
+  author: uekala
+  source_url: https://github.com/uekala/ha-grok-update-check/blob/main/blueprints/automation/grok_update_check.yaml
+  homeassistant:
+    min_version: "2026.7.0"
+  input:
+    watch:
+      name: What to check
+      icon: mdi:package-up
+      input:
+        update_entities:
+          name: Updates to watch
+          description: >-
+            Update entities to check. Good candidates: Home Assistant Core and
+            Operating System, important add-ons (e.g. Matter Server) and your
+            HACS integrations. Device firmware and dashboard cards are usually
+            not worth the API cost.
+          selector:
+            entity:
+              domain: update
+              multiple: true
+        delay_hours:
+          name: Wait before checking
+          description: >-
+            Hours an update must be available before Grok checks it, so that first
+            reports have time to show up. Installing the update before then skips
+            the check. A Home Assistant restart during the wait also skips it.
+          default: 4
+          selector:
+            number:
+              min: 0
+              max: 48
+              step: 1
+              unit_of_measurement: h
+              mode: slider
+    grok:
+      name: Grok
+      icon: mdi:robot-outline
+      input:
+        grok_entry:
+          name: Grok integration
+          description: Your "xAI Grok Conversation" integration entry.
+          selector:
+            config_entry:
+              integration: grok_conversation
+        live_search:
+          name: Live search
+          description: Where Grok searches. "Full" covers the web and X.
+          default: full
+          selector:
+            select:
+              options:
+                - label: Full (web + X)
+                  value: full
+                - label: Web only
+                  value: web
+                - label: X only
+                  value: x
+        setup_description:
+          name: Your setup (optional)
+          description: >-
+            A short description of your setup, so Grok focuses on problems that
+            matter to you. Example: "Home Assistant Green with HAOS, Zigbee via ZHA,
+            Matter over Thread, many HACS integrations". This text is sent to xAI.
+          default: ""
+          selector:
+            text:
+              multiline: true
+        language:
+          name: Answer language
+          default: English
+          selector:
+            text:
+    notify:
+      name: Notifications
+      icon: mdi:cellphone-message
+      input:
+        notify_device:
+          name: Phone
+          description: Device with the Home Assistant Companion app.
+          selector:
+            device:
+              filter:
+                - integration: mobile_app
+        persistent:
+          name: Also save as Home Assistant notification
+          description: Keeps the full answer including sources in the notification panel.
+          default: true
+          selector:
+            boolean:
+    texts:
+      name: Texts
+      icon: mdi:translate
+      collapsed: true
+      input:
+        no_updates_text:
+          name: Nothing pending
+          description: Sent when you run the check manually and no watched update is pending.
+          default: No pending updates among the watched entities.
+          selector:
+            text:
+        failure_text:
+          name: Check failed
+          description: Sent instead of Grok's answer when the request fails.
+          default: Grok check failed. Please read the release notes yourself.
+          selector:
+            text:
+
+mode: queued
+max: 10
+
+triggers:
+  - trigger: state
+    entity_id: !input update_entities
+    from: "off"
+    to: "on"
+    for:
+      hours: !input delay_hours
+
+variables:
+  update_entities: !input update_entities
+  live_search: !input live_search
+  setup_description: !input setup_description
+  language: !input language
+  persistent: !input persistent
+  no_updates_text: !input no_updates_text
+  failure_text: !input failure_text
+  targets: >-
+    {%- if trigger is defined and trigger.platform == 'state' -%}
+      {{ [trigger.entity_id] }}
+    {%- else -%}
+      {{ update_entities | select('is_state', 'on') | list }}
+    {%- endif -%}
+
+actions:
+  - alias: Manual run with nothing pending
+    if:
+      - "{{ targets | count == 0 }}"
+    then:
+      - device_id: !input notify_device
+        domain: mobile_app
+        type: notify
+        title: Update check
+        message: "{{ no_updates_text }}"
+      - stop: No pending updates
+
+  - alias: Check each update
+    repeat:
+      for_each: "{{ targets }}"
+      sequence:
+        - variables:
+            grok: "{{ {} }}"
+            component: >-
+              {{ state_attr(repeat.item, 'title')
+                 | default(state_attr(repeat.item, 'friendly_name') | replace(' Update', ''), true) }}
+            installed: "{{ state_attr(repeat.item, 'installed_version') }}"
+            latest: "{{ state_attr(repeat.item, 'latest_version') }}"
+            release_url: "{{ state_attr(repeat.item, 'release_url') | default('none', true) }}"
+
+        - alias: Ask Grok for reported problems
+          action: grok_conversation.ask
+          continue_on_error: true
+          data:
+            config_entry: !input grok_entry
+            live_search: "{{ live_search }}"
+            show_citations: true
+            instructions: >-
+              You check whether a Home Assistant update is safe to install.
+              Search X, GitHub issues and release notes, the Home Assistant
+              community forum and Reddit for problems reported with exactly this
+              version.
+              {% if setup_description %}The user's setup: {{ setup_description }}.
+              Focus on problems relevant to this setup.{% endif %}
+              Answer in {{ language }}, without an introduction, in at most 600
+              characters. Line 1 is exactly one of "Recommendation: Install",
+              "Recommendation: Wait" or "Recommendation: Caution", translated into
+              {{ language }}. Then at most 3 short bullet points with concrete
+              reported problems or breaking changes. If nothing relevant is
+              reported, say so in one sentence. Never invent problems.
+            input_data: |-
+              Component: {{ component }}
+              Installed version: {{ installed }}
+              New version: {{ latest }}
+              Release notes: {{ release_url }}
+          response_variable: grok
+
+        - variables:
+            answer: >-
+              {{ grok.response_text
+                 if grok is defined and grok.response_text is defined
+                 else failure_text }}
+
+        - alias: Short version to the phone
+          device_id: !input notify_device
+          domain: mobile_app
+          type: notify
+          title: "Update: {{ component }} {{ latest }}"
+          message: "{{ (answer.split('Sources:')[0] | trim)[:900] }}"
+          data:
+            tag: "grok-update-check-{{ repeat.item }}"
+            url: /config/updates
+            clickAction: /config/updates
+
+        - alias: Full answer with sources
+          if:
+            - "{{ persistent }}"
+          then:
+            - action: persistent_notification.create
+              data:
+                notification_id: "grok_update_check_{{ repeat.item | replace('.', '_') }}"
+                title: "Update check: {{ component }} {{ installed }} → {{ latest }}"
+                message: "{{ answer }}"
