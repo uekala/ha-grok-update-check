@@ -99,6 +99,7 @@ def test_blueprint_has_a_manual_no_updates_message():
     data = load_blueprint()
     body = data["actions"]
     rendered = repr(body)
-    assert "no_updates_text" in set(_used_inputs(body))
-    assert "failure_text" in set(_used_inputs(body))
+    # These two values are interpolated in Jinja templates, not used as !input tags.
+    assert "no_updates_text" in rendered
+    assert "failure_text" in rendered
     assert "mobile_app" in rendered
