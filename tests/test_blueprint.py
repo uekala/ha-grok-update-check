@@ -1,3 +1,4 @@
+import re
 from pathlib import Path
 
 import yaml
@@ -86,13 +87,35 @@ def test_blueprint_checks_updates_and_calls_grok():
     data = load_blueprint()
 
     assert data["mode"] == "queued"
-    assert data["triggers"], "No update trigger configured"
-    assert data["triggers"][0]["entity_id"] == "!input update_entities" or (
-        "update_entities" in set(_used_inputs(data["triggers"][0]))
-    )
     actions = set(_actions(data["actions"]))
     assert "grok_conversation.ask" in actions
     assert "persistent_notification.create" in actions
+    assert "input_text.set_value" in actions
+    assert not any(action.startswith("update.") for action in actions), (
+        "The blueprint must never install, skip or otherwise change updates"
+    )
+
+
+def test_wait_does_not_depend_on_timers_that_restarts_reset():
+    data = load_blueprint()
+
+    assert data["triggers"] == [
+        {"trigger": "time_pattern", "id": "periodic", "minutes": "/15"}
+    ]
+    assert "for" not in repr(data["triggers"])
+    targets = data["variables"]["targets"]
+    assert "timedelta(minutes=15)" in targets, "window must match the trigger interval"
+    assert "last_changed" in targets
+    assert data["conditions"][0]["value_template"] == "{{ targets | count > 0 }}"
+
+
+def test_description_names_the_version_from_the_changelog():
+    data = load_blueprint()
+    changelog = (ROOT / "CHANGELOG.md").read_text(encoding="utf-8")
+    versions = re.findall(r"^##\s+(\d+\.\d+\.\d+)\b", changelog, re.MULTILINE)
+
+    assert versions, "CHANGELOG.md has no version heading"
+    assert f"Version {versions[0]} " in data["blueprint"]["description"]
 
 
 def test_blueprint_has_a_manual_no_updates_message():
