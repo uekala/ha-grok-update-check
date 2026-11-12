@@ -14,7 +14,7 @@ Recommendation: Wait
 ## How it works
 
 1. An update entity you watch switches to *update available*.
-2. After a configurable wait (default 4 h, so first reports can appear), Grok runs a live search for that version.
+2. After a configurable wait (default 4 h, so first reports can appear), Grok runs a live search for that version. The automation looks for due updates every 15 minutes, so the check runs within 15 minutes after the wait.
 3. You get a push notification: **Install / Wait / Caution** plus up to three concrete issues. Tapping it opens the updates page.
 4. The full answer with sources is saved as a Home Assistant notification.
 
@@ -35,6 +35,7 @@ Run the automation manually to check **all pending updates** from your list righ
 |---|---|
 | Updates to watch | Update entities to check. Core, OS, key add-ons and HACS integrations are the best fit. Skip device firmware and dashboard cards. |
 | Wait before checking | Hours an update must be available before the check (0–48, default 4). |
+| Remember checked versions (optional) | A text helper (Settings → Devices & services → Helpers → Text, maximum length 255). Prevents a second check of the same version after a restart and also checks a newer version that replaces a pending one. |
 | Grok integration | Your xAI Grok Conversation entry. |
 | Live search | Full (web + X), web only or X only. |
 | Your setup | Optional description (e.g. "HA Green, Zigbee via ZHA, Matter over Thread"), so Grok focuses on what matters to you. |
@@ -67,9 +68,20 @@ tap_action:
 
 - **Cost:** each check uses live search. In testing, one check took about 20k prompt tokens. The integration's `estimated_cost` sensor shows what you actually spend.
 - **Privacy:** sent to xAI are the component name, both version numbers, the release notes link and your optional setup description. No entity states.
-- **Timing:** installing the update before the wait is over skips the check. A Home Assistant restart during the wait does too, because HA resets `for:` timers on restart.
+- **Timing:** installing the update before the wait is over skips the check. A Home Assistant restart during the wait does not: the wait starts again for updates that are still pending. Without the optional text helper, an update that is still pending after a restart is checked once more after the wait.
 - **Known issue in the integration (v1.11.1):** with *Send user name* enabled, requests from users without a linked person entity fail. Turn that option off until it is fixed upstream.
 - Grok can be wrong. Treat the verdict as a hint and read the release notes for anything critical.
+
+## Development
+
+```bash
+pip install -r requirements_test.txt
+pytest -q
+```
+
+`tests/test_blueprint.py` checks the structure with PyYAML only. `tests/test_runtime.py` loads the blueprint with Home Assistant's own blueprint code and runs it in a test instance: wait, restart, memory, manual run and failure text. Only the Grok service and the phone notification are replaced by recording fakes.
+
+Changes are listed in the [changelog](CHANGELOG.md).
 
 ## License
 

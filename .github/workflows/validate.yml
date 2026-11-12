@@ -21,3 +21,16 @@ jobs:
         run: python -m pip install PyYAML pytest
       - name: Validate Home Assistant blueprint
         run: python -m pytest -q
+
+  runtime:
+    name: Run blueprint in Home Assistant
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-python@v7
+        with:
+          python-version: "3.13"
+      - name: Install Home Assistant test harness
+        run: python -m pip install -r requirements_test.txt
+      - name: Run blueprint tests in a Home Assistant test instance
+        run: python -m pytest -q

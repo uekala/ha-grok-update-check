@@ -14,6 +14,9 @@ blueprint:
 
     Requires the "xAI Grok Conversation" integration from HACS
     (braytonstafford/grok_conversation) and the Home Assistant Companion app.
+
+
+    Version 1.1.0 – changelog: https://github.com/uekala/ha-grok-update-check/blob/main/CHANGELOG.md
   domain: automation
   author: uekala
   source_url: https://github.com/uekala/ha-grok-update-check/blob/main/blueprints/automation/grok_update_check.yaml
@@ -40,7 +43,8 @@ blueprint:
           description: >-
             Hours an update must be available before Grok checks it, so that first
             reports have time to show up. Installing the update before then skips
-            the check. A Home Assistant restart during the wait also skips it.
+            the check. The wait survives Home Assistant restarts: after a restart
+            it starts again for updates that are still pending.
           default: 4
           selector:
             number:
@@ -49,6 +53,20 @@ blueprint:
               step: 1
               unit_of_measurement: h
               mode: slider
+        memory:
+          name: Remember checked versions (optional)
+          description: >-
+            A text helper (input_text, set its maximum length to 255) where the
+            automation notes which versions it has already checked. With it, a
+            restart never causes a second check of the same version, and a newer
+            version that replaces a pending one is checked too. Without it, an
+            update that is still pending after a restart is checked once more
+            after the wait.
+          default: ""
+          selector:
+            entity:
+              filter:
+                - domain: input_text
     grok:
       name: Grok
       icon: mdi:robot-outline
@@ -125,28 +143,66 @@ blueprint:
 mode: queued
 max: 10
 
+# Instead of a state trigger with "for:" (which Home Assistant resets on every
+# restart), the automation looks every 15 minutes for updates whose wait is
+# over. Each update is due in exactly one of these 15-minute windows.
 triggers:
-  - trigger: state
-    entity_id: !input update_entities
-    from: "off"
-    to: "on"
-    for:
-      hours: !input delay_hours
+  - trigger: time_pattern
+    id: periodic
+    minutes: "/15"
 
 variables:
   update_entities: !input update_entities
+  delay_hours: !input delay_hours
+  memory_entity: !input memory
   live_search: !input live_search
   setup_description: !input setup_description
   language: !input language
   persistent: !input persistent
   no_updates_text: !input no_updates_text
   failure_text: !input failure_text
-  targets: >-
-    {%- if trigger is defined and trigger.platform == 'state' -%}
-      {{ [trigger.entity_id] }}
-    {%- else -%}
-      {{ update_entities | select('is_state', 'on') | list }}
+  periodic: "{{ trigger is defined and trigger.id is defined and trigger.id == 'periodic' }}"
+  # Checked versions from the optional text helper: {"<index in the list>": "<version>"}
+  remembered: >-
+    {%- set ns = namespace(pairs=[]) -%}
+    {%- if memory_entity -%}
+      {%- for part in (states(memory_entity) | string).split(';') if '=' in part -%}
+        {%- set ns.pairs = ns.pairs + [part.split('=', 1)] -%}
+      {%- endfor -%}
     {%- endif -%}
+    {{ dict(ns.pairs) }}
+  targets: >-
+    {%- set ns = namespace(out=[]) -%}
+    {%- if periodic -%}
+      {%- set window_end = trigger.now.replace(minute=(trigger.now.minute // 15) * 15, second=0, microsecond=0) -%}
+      {%- set window_start = window_end - timedelta(minutes=15) -%}
+    {%- endif -%}
+    {%- for entity in update_entities if is_state(entity, 'on') -%}
+      {%- if not periodic -%}
+        {%- set ns.out = ns.out + [entity] -%}
+      {%- else -%}
+        {%- set due = states[entity].last_changed + timedelta(hours=delay_hours | float(0)) -%}
+        {%- set version = state_attr(entity, 'latest_version') | string -%}
+        {%- set key = update_entities.index(entity) | string -%}
+        {#- Due once the wait is over: in its 15-minute window, or later if the
+            remembered version differs (a newer version replaced a checked one). -#}
+        {%- if due <= window_end -%}
+          {%- if key in remembered -%}
+            {%- if remembered[key] != version -%}
+              {%- set ns.out = ns.out + [entity] -%}
+            {%- endif -%}
+          {%- elif due > window_start -%}
+            {%- set ns.out = ns.out + [entity] -%}
+          {%- endif -%}
+        {%- endif -%}
+      {%- endif -%}
+    {%- endfor -%}
+    {{ ns.out }}
+
+conditions:
+  - alias: Something is due (manual runs skip this condition)
+    condition: template
+    value_template: "{{ targets | count > 0 }}"
 
 actions:
   - alias: Manual run with nothing pending
@@ -226,3 +282,31 @@ actions:
                 notification_id: "grok_update_check_{{ repeat.item | replace('.', '_') }}"
                 title: "Update check: {{ component }} {{ installed }} → {{ latest }}"
                 message: "{{ answer }}"
+
+  - alias: Remember checked versions
+    if:
+      - "{{ memory_entity != '' }}"
+    then:
+      - action: input_text.set_value
+        continue_on_error: true
+        target:
+          entity_id: "{{ memory_entity }}"
+        data:
+          value: >-
+            {%- set ns = namespace(parts=[], text='') -%}
+            {%- for entity in update_entities -%}
+              {%- set key = loop.index0 | string -%}
+              {%- if entity in targets -%}
+                {%- set ns.parts = ns.parts + [key ~ '=' ~ state_attr(entity, 'latest_version')] -%}
+              {%- elif is_state(entity, 'on') and remembered.get(key) -%}
+                {%- set ns.parts = ns.parts + [key ~ '=' ~ remembered.get(key)] -%}
+              {%- endif -%}
+            {%- endfor -%}
+            {%- set limit = state_attr(memory_entity, 'max') | int(100) -%}
+            {%- for part in ns.parts -%}
+              {%- set candidate = (ns.text ~ ';' ~ part) if ns.text else part -%}
+              {%- if candidate | length <= limit -%}
+                {%- set ns.text = candidate -%}
+              {%- endif -%}
+            {%- endfor -%}
+            {{ ns.text }}
