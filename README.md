@@ -11,6 +11,10 @@ Recommendation: Wait
 
 [![Open your Home Assistant instance and show the blueprint import dialog with this blueprint pre-filled.](https://my.home-assistant.io/badges/blueprint_import.svg)](https://my.home-assistant.io/redirect/blueprint_import/?blueprint_url=https%3A%2F%2Fgithub.com%2Fuekala%2Fha-grok-update-check%2Fblob%2Fmain%2Fblueprints%2Fautomation%2Fgrok_update_check.yaml)
 
+<img src="docs/blueprint-form.png" alt="The blueprint in the Home Assistant automation editor: updates to watch, wait before checking, remembered versions, Grok integration and live search" width="640">
+
+<sub>Creating an automation from the blueprint (Home Assistant 2026.11).</sub>
+
 ## How it works
 
 1. An update entity you watch switches to *update available*.
