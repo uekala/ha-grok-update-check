@@ -1,20 +1,20 @@
 # Changelog
 
-All notable changes to the blueprint. Versions follow [Semantic Versioning](https://semver.org/).
+Alle wichtigen Änderungen am Blueprint. Die Versionen folgen [Semantic Versioning](https://semver.org/lang/de/).
 
-## 1.1.0 – unreleased
+## 1.1.0 – unveröffentlicht
 
-### Changed
+### Geändert
 
-- **The wait survives restarts.** Instead of a state trigger with `for:` (which Home Assistant resets on every restart), the automation looks every 15 minutes for updates whose wait is over. A restart during the wait no longer skips the check; the wait starts again for updates that are still pending.
-- Automatic runs only happen when something is due, so idle ticks leave no traces and do not update "last triggered".
+- **Die Wartezeit übersteht Neustarts.** Statt eines Zustandsauslösers mit `for:` (den Home Assistant bei jedem Neustart zurücksetzt) sucht die Automation alle 15 Minuten nach Updates, deren Wartezeit abgelaufen ist. Ein Neustart während der Wartezeit lässt die Prüfung nicht mehr ausfallen; für Updates, die noch offen sind, beginnt die Wartezeit von vorn.
+- Automatische Läufe gibt es nur, wenn etwas fällig ist. Leere Takte hinterlassen keine Spuren und ändern „zuletzt ausgelöst“ nicht.
 
-### Added
+### Neu
 
-- Optional input **Remember checked versions**: a text helper in which the automation notes the checked versions. With it, restarts never cause a second check of the same version, and a newer version that replaces a pending one is checked as well.
-- Version number in the blueprint description and this changelog.
-- Runtime tests that run the blueprint in a real Home Assistant test instance (wait, restart, memory, manual run, failure text).
+- Optionale Eingabe **Remember checked versions**: ein Text-Helfer, in dem sich die Automation die geprüften Versionen merkt. Damit führen Neustarts nie zu einer zweiten Prüfung derselben Version, und eine neuere Version, die eine noch offene ersetzt, wird ebenfalls geprüft.
+- Versionsnummer in der Beschreibung des Blueprints und in diesem Changelog.
+- Laufzeittests, die den Blueprint in einer echten Testinstanz von Home Assistant ausführen (Wartezeit, Neustart, Gedächtnis, Start von Hand, Fehlertext).
 
 ## 1.0.0 – 2026-10-25
 
-First version: Grok checks a pending update after a configurable wait and sends a verdict (Install / Wait / Caution) with up to three reported problems to the phone and, optionally, the full answer with sources as a Home Assistant notification. Manual runs check all pending updates.
+Erste Version: Grok prüft ein offenes Update nach einer einstellbaren Wartezeit und schickt eine Einschätzung (Install / Wait / Caution) mit bis zu drei gemeldeten Problemen aufs Handy und auf Wunsch die vollständige Antwort mit Quellen als Benachrichtigung in Home Assistant. Ein Start von Hand prüft alle offenen Updates.

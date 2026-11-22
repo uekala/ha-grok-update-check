@@ -1,8 +1,8 @@
-"""Use Home Assistant's test harness when it is installed (requirements_test.txt).
+"""Nutzt die Testumgebung von Home Assistant, wenn sie installiert ist (requirements_test.txt).
 
-The structural tests in test_blueprint.py only need PyYAML; the runtime tests in
-test_runtime.py run the blueprint in a real test instance of Home Assistant and
-are skipped without the harness.
+Die Aufbautests in test_blueprint.py brauchen nur PyYAML; die Laufzeittests in
+test_runtime.py führen den Blueprint in einer echten Testinstanz von Home
+Assistant aus und werden ohne diese Umgebung übersprungen.
 """
 
 try:

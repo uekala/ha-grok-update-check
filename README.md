@@ -1,6 +1,6 @@
-# Update check with Grok for Home Assistant
+# Update-Check mit Grok für Home Assistant
 
-Is it safe to install that update yet? This blueprint asks **Grok (xAI)** to search **X, GitHub, Reddit and the Home Assistant forum** for problems reported with the exact version that just showed up, and sends you the verdict before you hit *Install*.
+Kann man das Update schon installieren? Dieser Blueprint lässt **Grok (xAI)** auf **X, GitHub, Reddit und im Home-Assistant-Forum** nach Problemen mit genau der Version suchen, die gerade aufgetaucht ist, und schickt dir das Ergebnis, bevor du auf *Installieren* tippst.
 
 ```
 Update: Home Assistant Core 2026.11.1
@@ -9,54 +9,54 @@ Recommendation: Wait
 - Fix is already merged for 2026.11.2.
 ```
 
-[![Open your Home Assistant instance and show the blueprint import dialog with this blueprint pre-filled.](https://my.home-assistant.io/badges/blueprint_import.svg)](https://my.home-assistant.io/redirect/blueprint_import/?blueprint_url=https%3A%2F%2Fgithub.com%2Fuekala%2Fha-grok-update-check%2Fblob%2Fmain%2Fblueprints%2Fautomation%2Fgrok_update_check.yaml)
+[![Home Assistant öffnen und den Import-Dialog mit diesem Blueprint anzeigen.](https://my.home-assistant.io/badges/blueprint_import.svg)](https://my.home-assistant.io/redirect/blueprint_import/?blueprint_url=https%3A%2F%2Fgithub.com%2Fuekala%2Fha-grok-update-check%2Fblob%2Fmain%2Fblueprints%2Fautomation%2Fgrok_update_check.yaml)
 
-<img src="docs/blueprint-form.png" alt="The blueprint in the Home Assistant automation editor: updates to watch, wait before checking, remembered versions, Grok integration and live search" width="640">
+<img src="docs/blueprint-form.png" alt="Der Blueprint im Automationseditor von Home Assistant: zu beobachtende Updates, Wartezeit vor der Prüfung, gemerkte Versionen, Grok-Integration und Live-Suche" width="640">
 
-<sub>Creating an automation from the blueprint (Home Assistant 2026.11).</sub>
+<sub>Eine Automation aus dem Blueprint anlegen (Home Assistant 2026.11).</sub>
 
-## How it works
+## So funktioniert es
 
-1. An update entity you watch switches to *update available*.
-2. After a configurable wait (default 4 h, so first reports can appear), Grok runs a live search for that version. The automation looks for due updates every 15 minutes, so the check runs within 15 minutes after the wait.
-3. You get a push notification: **Install / Wait / Caution** plus up to three concrete issues. Tapping it opens the updates page.
-4. The full answer with sources is saved as a Home Assistant notification.
+1. Eine beobachtete Update-Entität springt auf *Update verfügbar*.
+2. Nach einer einstellbaren Wartezeit (Standard 4 Stunden, damit erste Berichte auftauchen können) startet Grok eine Live-Suche zu dieser Version. Die Automation sucht alle 15 Minuten nach fälligen Updates, die Prüfung läuft also höchstens 15 Minuten nach Ablauf der Wartezeit.
+3. Du bekommst eine Push-Nachricht: **Install / Wait / Caution** (installieren, warten, Vorsicht) und bis zu drei konkrete Probleme. Ein Tipp darauf öffnet die Update-Seite.
+4. Die vollständige Antwort mit Quellen wird als Benachrichtigung in Home Assistant gespeichert.
 
-Run the automation manually to check **all pending updates** from your list right away (see [Dashboard button](#dashboard-button)).
+Startest du die Automation von Hand, prüft sie sofort **alle offenen Updates** aus deiner Liste (siehe [Knopf fürs Dashboard](#knopf-fürs-dashboard)).
 
-## Requirements
+## Voraussetzungen
 
-- Home Assistant **2026.7** or newer
-- [xAI Grok Conversation](https://github.com/braytonstafford/grok_conversation) from HACS, set up with an xAI API key that has credits
-- Home Assistant Companion app on your phone
+- Home Assistant **2026.7** oder neuer
+- [xAI Grok Conversation](https://github.com/braytonstafford/grok_conversation) aus HACS, eingerichtet mit einem xAI-API-Schlüssel mit Guthaben
+- Home-Assistant-Companion-App auf dem Handy
 
-## Setup
+## Einrichtung
 
-1. Import the blueprint with the button above.
-2. Create an automation from it and fill in the inputs:
+1. Den Blueprint mit dem Knopf oben importieren.
+2. Eine Automation daraus anlegen und die Eingaben ausfüllen (die Namen stehen im Editor auf Englisch):
 
-| Input | What it does |
+| Eingabe | Wozu |
 |---|---|
-| Updates to watch | Update entities to check. Core, OS, key add-ons and HACS integrations are the best fit. Skip device firmware and dashboard cards. |
-| Wait before checking | Hours an update must be available before the check (0–48, default 4). |
-| Remember checked versions (optional) | A text helper (Settings → Devices & services → Helpers → Text, maximum length 255). Prevents a second check of the same version after a restart and also checks a newer version that replaces a pending one. |
-| Grok integration | Your xAI Grok Conversation entry. |
-| Live search | Full (web + X), web only or X only. |
-| Your setup | Optional description (e.g. "HA Green, Zigbee via ZHA, Matter over Thread"), so Grok focuses on what matters to you. |
-| Answer language | e.g. English, German, Español. |
-| Phone | Device with the Companion app. |
-| Also save as notification | Keeps the full answer with sources in HA. |
-| Texts (collapsed) | The two fixed messages ("nothing pending", "check failed"), so you can translate them. |
+| Updates to watch | Update-Entitäten, die geprüft werden. Am besten passen Core, OS, wichtige Add-ons und HACS-Integrationen. Geräte-Firmware und Dashboard-Karten lieber weglassen. |
+| Wait before checking | Stunden, die ein Update verfügbar sein muss, bevor geprüft wird (0–48, Standard 4). |
+| Remember checked versions (optional) | Ein Text-Helfer (Einstellungen → Geräte & Dienste → Helfer → Text, maximale Länge 255). Verhindert nach einem Neustart eine zweite Prüfung derselben Version und prüft auch eine neuere Version, die eine noch offene ersetzt. |
+| Grok integration | Dein Eintrag von xAI Grok Conversation. |
+| Live search | Vollständig (Web und X), nur Web oder nur X. |
+| Your setup | Optionale Beschreibung (z. B. „HA Green, Zigbee über ZHA, Matter über Thread“), damit Grok sich auf das konzentriert, was bei dir zählt. |
+| Answer language | z. B. English, German, Español. |
+| Phone | Gerät mit der Companion-App. |
+| Also save as notification | Behält die vollständige Antwort mit Quellen in Home Assistant. |
+| Texts (eingeklappt) | Die beiden festen Meldungen („nichts offen“, „Prüfung fehlgeschlagen“), damit du sie übersetzen kannst. |
 
-### Dashboard button
+### Knopf fürs Dashboard
 
-A tile that runs the check for every pending update on tap:
+Eine Kachel, die per Tipp alle offenen Updates prüft:
 
 ```yaml
 type: tile
-entity: automation.update_check_with_grok   # your automation's entity ID
-name: Grok update check
-icon: mdi:robot-outline
+entity: automation.update_check_with_grok   # Entitäts-ID deiner Automation
+name: Grok-Update-Check
+icon: mdi:update
 tap_action:
   action: perform-action
   perform_action: automation.trigger
@@ -65,28 +65,28 @@ tap_action:
   data:
     skip_condition: true
   confirmation:
-    text: Run the Grok update check for all pending updates?
+    text: Grok-Update-Check für alle offenen Updates starten?
 ```
 
-## Good to know
+## Gut zu wissen
 
-- **Cost:** each check uses live search. In testing, one check took about 20k prompt tokens. The integration's `estimated_cost` sensor shows what you actually spend.
-- **Privacy:** sent to xAI are the component name, both version numbers, the release notes link and your optional setup description. No entity states.
-- **Timing:** installing the update before the wait is over skips the check. A Home Assistant restart during the wait does not: the wait starts again for updates that are still pending. Without the optional text helper, an update that is still pending after a restart is checked once more after the wait.
-- **Known issue in the integration (v1.11.1):** with *Send user name* enabled, requests from users without a linked person entity fail. Turn that option off until it is fixed upstream.
-- Grok can be wrong. Treat the verdict as a hint and read the release notes for anything critical.
+- **Kosten:** Jede Prüfung nutzt die Live-Suche. Im Test brauchte eine Prüfung etwa 20.000 Prompt-Tokens. Der Sensor `estimated_cost` der Integration zeigt, was du tatsächlich ausgibst.
+- **Datenschutz:** An xAI gehen der Name der Komponente, beide Versionsnummern, der Link zu den Release-Notes und deine optionale Beschreibung. Keine Zustände von Entitäten.
+- **Zeitpunkt:** Installierst du das Update vor Ablauf der Wartezeit, entfällt die Prüfung. Ein Neustart von Home Assistant während der Wartezeit lässt sie nicht ausfallen: Für Updates, die noch offen sind, beginnt die Wartezeit von vorn. Ohne den optionalen Text-Helfer wird ein Update, das nach einem Neustart noch offen ist, nach der Wartezeit ein weiteres Mal geprüft.
+- **Bekannter Fehler in der Integration (v1.11.1):** Mit eingeschaltetem *Send user name* schlagen Anfragen von Nutzern ohne verknüpfte Person fehl. Die Option ausschalten, bis der Fehler in der Integration behoben ist.
+- Grok kann sich irren. Nimm die Einschätzung als Hinweis und lies bei allem Wichtigen die Release-Notes.
 
-## Development
+## Entwicklung
 
 ```bash
 pip install -r requirements_test.txt
 pytest -q
 ```
 
-`tests/test_blueprint.py` checks the structure with PyYAML only. `tests/test_runtime.py` loads the blueprint with Home Assistant's own blueprint code and runs it in a test instance: wait, restart, memory, manual run and failure text. Only the Grok service and the phone notification are replaced by recording fakes.
+`tests/test_blueprint.py` prüft den Aufbau nur mit PyYAML. `tests/test_runtime.py` lädt den Blueprint mit dem Blueprint-Code von Home Assistant selbst und führt ihn in einer Testinstanz aus: Wartezeit, Neustart, Gedächtnis, Start von Hand und Fehlertext. Nur der Grok-Dienst und die Handy-Benachrichtigung werden durch aufzeichnende Attrappen ersetzt.
 
-Changes are listed in the [changelog](CHANGELOG.md).
+Änderungen stehen im [Changelog](CHANGELOG.md).
 
-## License
+## Lizenz
 
-[MIT](LICENSE). Unofficial; not affiliated with xAI or Home Assistant.
+[MIT](LICENSE). Inoffiziell; keine Verbindung zu xAI oder Home Assistant.

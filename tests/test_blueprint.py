@@ -8,7 +8,7 @@ BLUEPRINT_PATH = ROOT / "blueprints" / "automation" / "grok_update_check.yaml"
 
 
 class BlueprintLoader(yaml.SafeLoader):
-    """Load Home Assistant's !input tags as ordinary reference objects."""
+    """Lädt die !input-Tags von Home Assistant als gewöhnliche Verweisobjekte."""
 
 
 def _input_tag(loader, node):
@@ -19,7 +19,7 @@ BlueprintLoader.add_constructor("!input", _input_tag)
 
 
 def _declared_inputs(section):
-    """Collect input names, including Home Assistant's grouped input sections."""
+    """Sammelt die Namen der Eingaben, auch aus den gruppierten Abschnitten von Home Assistant."""
     for key, value in section.items():
         if isinstance(value, dict) and "input" in value and "selector" not in value:
             yield from _declared_inputs(value["input"])
@@ -122,7 +122,7 @@ def test_blueprint_has_a_manual_no_updates_message():
     data = load_blueprint()
     body = data["actions"]
     rendered = repr(body)
-    # These two values are interpolated in Jinja templates, not used as !input tags.
+    # Diese beiden Werte werden in Jinja-Vorlagen eingesetzt, nicht als !input-Tags verwendet.
     assert "no_updates_text" in rendered
     assert "failure_text" in rendered
     assert "mobile_app" in rendered

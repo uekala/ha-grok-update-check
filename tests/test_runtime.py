@@ -1,11 +1,12 @@
-"""Run the blueprint in a real Home Assistant test instance.
+"""Führt den Blueprint in einer echten Testinstanz von Home Assistant aus.
 
-The blueprint is loaded with Home Assistant's own YAML loader and blueprint
-code, the inputs are substituted, and the resulting automation runs against
-real state changes and the real time-pattern trigger. Only two things are
-replaced: the Grok service (a fake that records requests) and the phone
-notification (a device action that needs a paired Companion app; it becomes a
-recording service with the same title and message).
+Der Blueprint wird mit dem YAML-Lader und dem Blueprint-Code von Home Assistant
+selbst geladen, die Eingaben werden eingesetzt, und die entstandene Automation
+läuft gegen echte Zustandsänderungen und den echten Zeitmuster-Auslöser. Nur
+zwei Dinge werden ersetzt: der Grok-Dienst (eine Attrappe, die Anfragen
+aufzeichnet) und die Handy-Benachrichtigung (eine Geräteaktion, die eine
+gekoppelte Companion-App braucht; sie wird zu einem aufzeichnenden Dienst mit
+demselben Titel und derselben Nachricht).
 """
 
 from __future__ import annotations
@@ -41,7 +42,7 @@ START = dt_util.parse_datetime("2026-11-10T08:02:00+00:00")
 
 
 def _phone_notifications_to_service(node):
-    """Replace mobile_app device actions with a recording service call."""
+    """Ersetzt Geräteaktionen von mobile_app durch einen aufzeichnenden Dienstaufruf."""
     if isinstance(node, list):
         return [_phone_notifications_to_service(item) for item in node]
     if isinstance(node, dict):
@@ -111,7 +112,7 @@ async def recorder(hass: HomeAssistant) -> Recorder:
 
 async def setup(hass: HomeAssistant, freezer, **inputs) -> None:
     freezer.move_to(START)
-    # Updates exist and are up to date before anything happens, as in a real system.
+    # Die Updates gibt es schon und sie sind aktuell, bevor etwas passiert, wie in einem echten System.
     set_update(hass, CORE, "off", latest="2026.11.0")
     set_update(hass, OS, "off", latest="17.0")
     assert await async_setup_component(
@@ -138,7 +139,7 @@ def set_update(
 
 
 async def advance(hass: HomeAssistant, freezer, delta: timedelta) -> None:
-    """Move time forward and fire every quarter-hour tick on the way, like HA does."""
+    """Stellt die Zeit vor und löst unterwegs jeden Viertelstundentakt aus, wie Home Assistant."""
     end = dt_util.utcnow() + delta
     while True:
         now = dt_util.utcnow()
@@ -157,7 +158,7 @@ async def advance(hass: HomeAssistant, freezer, delta: timedelta) -> None:
 async def restart_like(
     hass: HomeAssistant, entity_id: str, latest: str = "2026.11.1"
 ) -> None:
-    """After a restart, update entities come back and their last_changed is reset."""
+    """Nach einem Neustart kommen die Update-Entitäten zurück, und last_changed ist zurückgesetzt."""
     hass.states.async_set(entity_id, "unavailable")
     await hass.async_block_till_done()
     set_update(hass, entity_id, "on", latest)
@@ -244,14 +245,14 @@ async def test_memory_prevents_repeat_checks_and_catches_newer_versions(
     await advance(hass, freezer, timedelta(hours=3))
     assert len(recorder.grok) == 2, "remembered versions are not checked again"
 
-    # A newer version replaces the pending one without the state changing.
+    # Eine neuere Version ersetzt die offene, ohne dass sich der Zustand ändert.
     set_update(hass, CORE, "on", latest="2026.11.2")
     await advance(hass, freezer, timedelta(minutes=15))
     assert len(recorder.grok) == 3
     assert "New version: 2026.11.2" in recorder.grok[2]["input_data"]
     assert hass.states.get(MEMORY).state == "0=2026.11.2;1=17.1"
 
-    # Installed updates drop out of the memory.
+    # Installierte Updates fallen aus dem Gedächtnis.
     set_update(hass, OS, "off", latest="17.1")
     set_update(hass, CORE, "on", latest="2026.11.3")
     await advance(hass, freezer, timedelta(minutes=15))
@@ -266,7 +267,7 @@ async def test_memory_respects_the_helper_length(hass, freezer, recorder) -> Non
     set_update(hass, CORE, "on")
     set_update(hass, OS, "on", latest="17.1")
     await advance(hass, freezer, timedelta(hours=2))
-    # The second entry does not fit; that update is still checked only once.
+    # Der zweite Eintrag passt nicht hinein; dieses Update wird trotzdem nur einmal geprüft.
     assert len(recorder.grok) == 2
     assert hass.states.get(MEMORY).state == "0=2026.11.1"
 
@@ -282,7 +283,7 @@ async def test_memory_keeps_the_wait_for_a_new_update_after_an_install(
     await advance(hass, freezer, timedelta(hours=5))
     assert len(recorder.grok) == 1
 
-    # Installed; no run in between, so the memory still holds the old version.
+    # Installiert; dazwischen kein Lauf, also steht im Gedächtnis noch die alte Version.
     set_update(hass, CORE, "off")
     await advance(hass, freezer, timedelta(hours=1))
     set_update(hass, CORE, "on", latest="2026.12.0")

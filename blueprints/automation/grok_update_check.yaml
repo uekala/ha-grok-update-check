@@ -143,9 +143,10 @@ blueprint:
 mode: queued
 max: 10
 
-# Instead of a state trigger with "for:" (which Home Assistant resets on every
-# restart), the automation looks every 15 minutes for updates whose wait is
-# over. Each update is due in exactly one of these 15-minute windows.
+# Statt eines Zustandsauslösers mit "for:" (den Home Assistant bei jedem
+# Neustart zurücksetzt) sucht die Automation alle 15 Minuten nach Updates, deren
+# Wartezeit abgelaufen ist. Jedes Update ist in genau einem dieser
+# 15-Minuten-Fenster fällig.
 triggers:
   - trigger: time_pattern
     id: periodic
@@ -162,7 +163,7 @@ variables:
   no_updates_text: !input no_updates_text
   failure_text: !input failure_text
   periodic: "{{ trigger is defined and trigger.id is defined and trigger.id == 'periodic' }}"
-  # Checked versions from the optional text helper: {"<index in the list>": "<version>"}
+  # Geprüfte Versionen aus dem optionalen Text-Helfer: {"<Index in der Liste>": "<Version>"}
   remembered: >-
     {%- set ns = namespace(pairs=[]) -%}
     {%- if memory_entity -%}
