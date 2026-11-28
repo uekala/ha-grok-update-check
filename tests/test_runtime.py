@@ -87,6 +87,17 @@ class Recorder:
         self.fail_grok = False
 
 
+@pytest.fixture(autouse=True)
+async def stop_automations(hass: HomeAssistant):
+    """Schaltet die Automation am Testende ab, damit kein Viertelstundentakt als Timer übrig bleibt."""
+    yield
+    if hass.services.has_service("automation", "turn_off"):
+        await hass.services.async_call(
+            "automation", "turn_off", {"entity_id": "all"}, blocking=True
+        )
+        await hass.async_block_till_done()
+
+
 @pytest.fixture
 async def recorder(hass: HomeAssistant) -> Recorder:
     rec = Recorder()
